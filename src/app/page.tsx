@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 function beep(type: 'success' | 'error') {
   const ctx = new AudioContext()
@@ -41,8 +41,23 @@ export default function Home() {
   const [message, setMessage] = useState('')
   const [history, setHistory] = useState<any[]>([])
   const [flash, setFlash] = useState('')
+  const [logs, setLogs] = useState<any[]>([])
+async function loadLogs() {
+  const { data } = await supabase
+    .from('scan_logs')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(20)
 
-  function searchBarcode(value: string) {
+  if (data) {
+    setLogs(data)
+  }
+}
+
+useEffect(() => {
+  loadLogs()
+}, [])
+  async function searchBarcode(value: string) {
   setBarcode(value)
 
   if (timerRef.current) {
@@ -79,6 +94,21 @@ setTimeout(() => setFlash(''), 1000)
     }
 
     setProduct(data)
+   const { error: logError } = await supabase
+  .from('scan_logs')
+  .insert({
+    sku: data.sku,
+    barcode: data.barcode,
+    stock_name: data.stock_name,
+    reyon_code: data.reyon_code,
+    current_status: data.current_status,
+    action: 'SCAN'
+  })
+
+console.log('SCAN LOG ERROR:', logError)
+if (logError) {
+  setMessage('Log hatası: ' + logError.message)
+}
 setFlash('green')
 setTimeout(() => setFlash(''), 1000)
 beep('success')
@@ -240,6 +270,21 @@ setHistory(prev => [
       )}
       <div style={{ marginTop: 30 }}>
   <h3>Son Okutulanlar</h3>
+  <div style={{ marginTop: 30 }}>
+  <h3>Kalıcı Hareket Geçmişi</h3>
+
+  {logs.map((log, i) => (
+    <div
+      key={i}
+      style={{
+        padding: 8,
+        borderBottom: '1px solid #ddd'
+      }}
+    >
+      {new Date(log.created_at).toLocaleTimeString()} - {log.sku} - {log.stock_name} - {log.reyon_code}
+    </div>
+  ))}
+</div>
 
   {history.map((item, i) => (
     <div
