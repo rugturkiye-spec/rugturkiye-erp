@@ -26,11 +26,12 @@ function beep(type: 'success' | 'error') {
   }
 
   if (type === 'success') {
-    playTone(1200, 0, 0.12)
-  } else {
-    playTone(250, 0, 0.12)
-    playTone(250, 0.18, 0.12)
-  }
+  playTone(1800, 0, 0.08)
+} else {
+  playTone(180, 0, 0.25)
+  playTone(180, 0.35, 0.25)
+  playTone(180, 0.70, 0.25)
+}
 }
 export default function Home() {
   const inputRef = useRef<HTMLInputElement>(null)
@@ -39,6 +40,7 @@ export default function Home() {
   const [product, setProduct] = useState<any>(null)
   const [message, setMessage] = useState('')
   const [history, setHistory] = useState<any[]>([])
+  const [flash, setFlash] = useState('')
 
   function searchBarcode(value: string) {
   setBarcode(value)
@@ -68,6 +70,8 @@ export default function Home() {
 
     if (!data) {
       setMessage('Ürün bulunamadı')
+      setFlash('red')
+setTimeout(() => setFlash(''), 1000)
       beep('error')
       setBarcode('')
       inputRef.current?.focus()
@@ -75,8 +79,10 @@ export default function Home() {
     }
 
     setProduct(data)
-    beep('success')
-    setHistory(prev => [
+setFlash('green')
+setTimeout(() => setFlash(''), 1000)
+beep('success')
+setHistory(prev => [
   {
     time: new Date().toLocaleTimeString(),
     sku: data.sku,
@@ -93,7 +99,19 @@ export default function Home() {
 }
 
   return (
-    <main style={{ padding: 40 }}>
+    <main
+  style={{
+    padding: 40,
+    minHeight: '100vh',
+    background:
+      flash === 'green'
+        ? '#d4ffd4'
+        : flash === 'red'
+        ? '#ffd4d4'
+        : 'white',
+    transition: '0.15s'
+  }}
+>
       <h1>RugTurkey ERP</h1>
 
       <input
