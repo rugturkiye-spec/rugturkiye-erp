@@ -2,13 +2,43 @@
 
 import { useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+function beep(type: 'success' | 'error') {
+  const ctx = new AudioContext()
 
+  const playTone = (
+    freq: number,
+    start: number,
+    duration: number
+  ) => {
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+
+    osc.frequency.value = freq
+    osc.type = 'square'
+
+    gain.gain.value = 0.2
+
+    osc.start(ctx.currentTime + start)
+    osc.stop(ctx.currentTime + start + duration)
+  }
+
+  if (type === 'success') {
+    playTone(1200, 0, 0.12)
+  } else {
+    playTone(250, 0, 0.12)
+    playTone(250, 0.18, 0.12)
+  }
+}
 export default function Home() {
   const inputRef = useRef<HTMLInputElement>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const [barcode, setBarcode] = useState('')
   const [product, setProduct] = useState<any>(null)
   const [message, setMessage] = useState('')
+  const [history, setHistory] = useState<any[]>([])
 
   function searchBarcode(value: string) {
   setBarcode(value)
@@ -38,12 +68,22 @@ export default function Home() {
 
     if (!data) {
       setMessage('Ürün bulunamadı')
+      beep('error')
       setBarcode('')
       inputRef.current?.focus()
       return
     }
 
     setProduct(data)
+    beep('success')
+    setHistory(prev => [
+  {
+    time: new Date().toLocaleTimeString(),
+    sku: data.sku,
+    name: data.stock_name,
+  },
+  ...prev,
+].slice(0, 20))
 
     setTimeout(() => {
       setBarcode('')
@@ -69,15 +109,30 @@ export default function Home() {
         }}
       />
 
-      {message && <p>{message}</p>}
+      {message && (
+  <div
+    style={{
+      marginTop: 15,
+      padding: 15,
+      background: '#fee2e2',
+      color: '#991b1b',
+      fontWeight: 800,
+      fontSize: 24,
+      borderRadius: 10,
+      width: 500,
+    }}
+  >
+    ❌ {message}
+  </div>
+)}
 
       {product && (
         <div style={{ marginTop: 20 }}>
           <h2>📦 Ürün Bilgileri</h2>
           <div
   style={{
-    width: 180,
-    height: 180,
+  width: 250,
+  height: 250,
     border: '2px dashed #ccc',
     borderRadius: 12,
     display: 'flex',
@@ -87,7 +142,21 @@ export default function Home() {
     color: '#777'
   }}
 >
-  Fotoğraf Yok
+
+  {product.photo_url ? (
+  <img
+    src={product.photo_url}
+    alt={product.stock_name}
+    style={{
+      width: '100%',
+      height: '100%',
+      objectFit: 'contain',
+      borderRadius: 10,
+    }}
+  />
+) : (
+<span>Fotoğraf Yok</span>
+)}
 </div>
           <hr style={{ marginBottom: 15 }} />
           <div style={{
@@ -128,7 +197,22 @@ export default function Home() {
     {product.current_status}
   </span>
 </p>
-  <p><b>Reyon:</b> {product.reyon_code}</p>
+  <div
+  style={{
+    marginTop: 12,
+    marginBottom: 12,
+    padding: 20,
+    background: '#111827',
+    color: 'white',
+    fontSize: 64,
+    fontWeight: 900,
+    borderRadius: 16,
+    textAlign: 'center',
+    width: 220,
+  }}
+>
+  {product.reyon_code}
+</div>
   <p><b>Ölçü:</b> {product.length_cm} x {product.width_cm} cm</p>
   <p><b>M2:</b> {product.m2}</p>
   <p><b>Fotoğraf:</b> {product.photo_status}</p>
@@ -136,6 +220,21 @@ export default function Home() {
 </div>
         </div>
       )}
+      <div style={{ marginTop: 30 }}>
+  <h3>Son Okutulanlar</h3>
+
+  {history.map((item, i) => (
+    <div
+      key={i}
+      style={{
+        padding: 8,
+        borderBottom: '1px solid #ddd'
+      }}
+    >
+      {item.time} - {item.sku} - {item.name}
+    </div>
+  ))}
+</div>
     </main>
   )
 }
