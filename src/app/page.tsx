@@ -5,28 +5,31 @@ import { supabase } from '../lib/supabase'
 
 export default function Home() {
   const inputRef = useRef<HTMLInputElement>(null)
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
   const [barcode, setBarcode] = useState('')
   const [product, setProduct] = useState<any>(null)
   const [message, setMessage] = useState('')
 
-  async function searchBarcode(value: string) {
-    console.log('GELEN:', value)
-console.log('TEMIZ:', value.trim())
-    setBarcode(value)
-    setProduct(null)
-    setMessage('')
+  function searchBarcode(value: string) {
+  setBarcode(value)
 
+  if (timerRef.current) {
+    clearTimeout(timerRef.current)
+  }
+
+  timerRef.current = setTimeout(async () => {
     const clean = value.trim()
 
     if (clean.length < 5) return
+
+    setProduct(null)
+    setMessage('')
 
     const { data, error } = await supabase
       .from('products')
       .select('*')
       .eq('barcode', clean)
       .maybeSingle()
-      console.log('DATA:', data)
-console.log('ERROR:', error)
 
     if (error) {
       setMessage('Hata: ' + error.message)
@@ -35,11 +38,19 @@ console.log('ERROR:', error)
 
     if (!data) {
       setMessage('Ürün bulunamadı')
+      setBarcode('')
+      inputRef.current?.focus()
       return
     }
 
- setProduct(data)
-  }
+    setProduct(data)
+
+    setTimeout(() => {
+      setBarcode('')
+      inputRef.current?.focus()
+    }, 500)
+  }, 300)
+}
 
   return (
     <main style={{ padding: 40 }}>
