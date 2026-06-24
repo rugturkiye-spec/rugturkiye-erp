@@ -42,6 +42,12 @@ export default function Home() {
   const [history, setHistory] = useState<any[]>([])
   const [flash, setFlash] = useState('')
   const [logs, setLogs] = useState<any[]>([])
+  const [action, setAction] = useState('SCAN')
+  const actionRef = useRef('SCAN')
+  function changeAction(value: string) {
+  setAction(value)
+  actionRef.current = value
+}
 async function loadLogs() {
   const { data } = await supabase
     .from('scan_logs')
@@ -102,7 +108,7 @@ setTimeout(() => setFlash(''), 1000)
     stock_name: data.stock_name,
     reyon_code: data.reyon_code,
     current_status: data.current_status,
-    action: 'SCAN'
+    action: actionRef.current
   })
 
 console.log('SCAN LOG ERROR:', logError)
@@ -112,11 +118,13 @@ if (logError) {
 setFlash('green')
 setTimeout(() => setFlash(''), 1000)
 beep('success')
+loadLogs()
 setHistory(prev => [
   {
     time: new Date().toLocaleTimeString(),
     sku: data.sku,
     name: data.stock_name,
+    action: actionRef.current,
   },
   ...prev,
 ].slice(0, 20))
@@ -157,7 +165,28 @@ setHistory(prev => [
         }}
       />
 
-      {message && (
+    <div style={{ marginTop: 8, fontWeight: 700 }}>
+  Seçili işlem: {action}
+</div>  
+<div style={{ marginTop: 10, display: 'flex', gap: 10 }}>
+  <button onClick={() => changeAction('SCAN')}>
+    SCAN
+  </button>
+    <button
+  onClick={() => {
+    changeAction('IN')
+}}
+>
+GİRİŞ
+</button>
+
+<button onClick={() => changeAction('OUT')}>
+  ÇIKIŞ
+</button>
+   
+
+</div>
+  {message && (
   <div
     style={{
       marginTop: 15,
@@ -173,7 +202,6 @@ setHistory(prev => [
     ❌ {message}
   </div>
 )}
-
       {product && (
         <div style={{ marginTop: 20 }}>
           <h2>📦 Ürün Bilgileri</h2>
@@ -273,16 +301,37 @@ setHistory(prev => [
   <div style={{ marginTop: 30 }}>
   <h3>Kalıcı Hareket Geçmişi</h3>
 
-  {logs.map((log, i) => (
-    <div
-      key={i}
+    {logs.map((log, i) => (
+  <div
+    key={i}
+    style={{
+      padding: 8,
+      borderBottom: '1px solid #ddd'
+    }}
+  >
+    <span
       style={{
-        padding: 8,
-        borderBottom: '1px solid #ddd'
+        fontWeight: 800,
+        color:
+          log.action === 'IN'
+            ? '#065f46'
+            : log.action === 'OUT'
+            ? '#991b1b'
+            : '#111827'
       }}
     >
-      {new Date(log.created_at).toLocaleTimeString()} - {log.sku} - {log.stock_name} - {log.reyon_code}
-    </div>
+      {log.action}
+    </span>
+
+    {' - '}
+    {new Date(log.created_at).toLocaleTimeString()}
+    {' - '}
+    {log.sku}
+    {' - '}
+    {log.stock_name}
+    {' - '}
+    {log.reyon_code}
+  </div>
   ))}
 </div>
 
@@ -294,7 +343,21 @@ setHistory(prev => [
         borderBottom: '1px solid #ddd'
       }}
     >
-      {item.time} - {item.sku} - {item.name}
+      <span
+  style={{
+    fontWeight: 800,
+    color:
+      item.action === 'IN'
+        ? '#065f46'
+        : item.action === 'OUT'
+        ? '#991b1b'
+        : '#111827',
+  }}
+>
+  {item.action}
+</span>
+{' - '}
+{item.time} - {item.sku} - {item.name}
     </div>
   ))}
 </div>
